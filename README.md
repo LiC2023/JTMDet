@@ -1,6 +1,6 @@
 # Joint Transformer and Mamba Fusion for Multispectral Object Detection
 ## Intro
-Official Code for [Joint Transformer and Mamba Fusion for Multispectral Object Detection](https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=4932620).
+Official Code for [Joint Transformer and Mamba Fusion for Multispectral Object Detection](https://www.sciencedirect.com/science/article/pii/S0262885625000563).
 ## Installation
 Install libraries including numpy, pytorch, timm, mamba-ssm, etc. according to `requirement.txt`
 
