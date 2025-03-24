@@ -1,0 +1,99 @@
+# YOLOv5 🚀 by Ultralytics, GPL-3.0 license
+
+# Parameters
+nc: 3  # number of classes
+depth_multiple: 1.0  # model depth multiple
+width_multiple: 1.0  # layer channel multiple
+anchors:
+  - [10,13, 16,30, 33,23]  # P3/8
+  - [30,61, 62,45, 59,119]  # P4/16
+  - [116,90, 156,198, 373,326]  # P5/32
+
+# YOLOv5 v6.0 backbone
+backbone:
+  # [from, number, module, args]
+  # stream one
+  [[-1, 1, Conv, [64, 6, 2, 2]],  # 0-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 1-P2/4
+   [-1, 3, C3, [128]],  # 2-P2/4
+   [-1, 1, Conv, [256, 3, 2]],  # 3-P3/8
+   [-1, 6, C3, [256]],  # 4-P3/8
+
+    # stream two
+   [-5, 1, Conv, [64, 6, 2, 2]],  # 5-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 6-P2/4
+   [-1, 3, C3, [128]],  # 7-P2/4
+   [-1, 1, Conv, [256, 3, 2]],  # 8-P3/8
+   [-1, 6, C3, [256]],  # 9-P3/8
+
+
+    ######### TransformerBlock one #############
+   # transformer fusion
+    [[4,9], 1, CMFJTM_MBM, [256]],   # 10-P3/8
+    [[4,10], 1, Add2, [256,0]],    # 11-P3/8 stream one x+trans[0]
+    [[9,10], 1, Add2, [256,1]],    # 12-P3/8 stream two x+trans[1]
+
+    ######### TransformerBlock Two #############
+    # stream one
+    [ 11, 1, Conv, [ 512, 3, 2 ] ],   # 13-P4/16
+    [ -1, 9, C3, [ 512 ] ],   # 14-P4/16
+    # stream two
+    [ 12, 1, Conv, [ 512, 3, 2 ] ],   # 15-P4/16
+    [ -1, 9, C3, [ 512 ] ],   # 16-P4/16
+    # transformer fusion
+    [ [ 14,16 ], 1, CMFJTM_MBM, [ 512 ] ],   # 17-P3/8
+    [ [ 14,17 ], 1, Add2, [ 512,0 ] ],    # 18-P3/8 stream one x+trans[0]
+    [ [ 16,17 ], 1, Add2, [ 512,1 ] ],    # 19-P3/8 stream two x+trans[1]
+
+
+    ######### TransformerBlock Four #############
+    # stream one
+    [ 18, 1, Conv, [ 1024, 3, 2 ] ],    # 20-P5/32
+    [ -1, 3, C3, [ 1024] ],   # 21-P5/32
+    [ -1, 1, SPPF, [ 1024, 5 ]],   # 22-P5/32  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # stream two
+    [ 19, 1, Conv, [ 1024, 3, 2 ] ],    # 23-P5/32
+    [ -1, 3, C3, [ 1024 ] ],   # 24-P5/32
+    [ -1, 1, SPPF, [ 1024, 5 ]],   # 25-P5/32
+
+    # transformer fusion
+    [ [ 22,25 ], 1, CMFJTM_MBM, [ 1024 ] ],    # 26-P5/32
+    [ [ 22,26 ], 1, Add2, [ 1024,0 ] ],    # 27-P5/32 stream one x+trans[0]  ���Ĳ���[1024,0]�е�0��ָ�˵�һ����֧Ҳ����ir��֧������
+    [ [ 25,26 ], 1, Add2, [ 1024,1 ] ],    # 28-P5/32 stream two x+trans[1]  ���Ĳ���[1024,1]�е�1��ָ�˵ڶ�����֧Ҳ����rgb��֧������
+
+
+    ######### Add Block #############
+    [ [ 11,12 ], 1, Conv3dFusion, [ 1 ] ],   # 29-P3/8 fusion backbone P3
+    [ [ 18,19 ], 1, Conv3dFusion, [ 1 ] ],   # 30-P4/16 fusion backbone P4
+    [ [ 27,28 ], 1, Conv3dFusion, [ 1 ] ],   # 31-P5/32 fusion backbone P5
+
+   [ [ 29, 30, 31 ], 1, CLFJTM_MBM, [ 1024 ] ],  # 32- (P3/P4/P5)
+   [ [ 29, 32 ], 1, Part, [ 0 ] ],  # 33-P3
+   [ [ 30, 32 ], 1, Part, [ 1 ] ],  # 34-P4  这里输入两个输入是因为要使用原来的P4输出来确定这层的输出维度
+   [ [ 31, 32 ], 1, Part, [ 2 ] ],  # 35-P5
+
+  ]
+
+# YOLOv5 v6.0 head
+head:
+  [[-1, 1, Conv, [512, 1, 1]],  # 36
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],  # 37
+   [[-1, 34], 1, Concat, [1]],  # 38 cat backbone P4
+   [-1, 3, C3, [512, False]],  # 39
+
+   [-1, 1, Conv, [256, 1, 1]],  # 40
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],  # 41
+   [[-1, 33], 1, Concat, [1]],  # 42 cat backbone P3
+   [-1, 3, C3, [256, False]],  # 43 (P3/8-small)
+
+   [-1, 1, Conv, [256, 3, 2]],  # 44
+   [[-1, 40], 1, Concat, [1]],  # 45 cat head P4
+   [-1, 3, C3, [512, False]],  # 46 (P4/16-medium)
+
+   [-1, 1, Conv, [512, 3, 2]],  # 47
+   [[-1, 36], 1, Concat, [1]],  # 48 cat head P5
+   [-1, 3, C3, [1024, False]],  # 49 (P5/32-large)
+
+   [[43, 46, 49], 1, Detect, [nc, anchors]],  # 50 Detect(P3, P4, P5)
+  ]

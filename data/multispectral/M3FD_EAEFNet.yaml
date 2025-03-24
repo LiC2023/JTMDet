@@ -1,0 +1,25 @@
+# COCO 2017 dataset http://cocodataset.org - first 128 training images
+# Train command: python train.py --data coco128.yaml
+# Default dataset location is next to YOLOv5:
+#   /parent_folder
+#     /coco128
+#     /yolov5
+
+
+# download command/URL (optional)
+download: https://github.com/ultralytics/yolov5/releases/download/v7.0/coco128.zip
+
+
+train_rgb: /data1/M3FD/M3FD_Detection/EAEFNet_dataset/train_rgb.txt  # 3360 images
+val_rgb: /data1/M3FD/M3FD_Detection/EAEFNet_dataset/val_rgb.txt
+train_ir: /data1/M3FD/M3FD_Detection/EAEFNet_dataset/train_ir.txt  # 840 images
+val_ir: /data1/M3FD/M3FD_Detection/EAEFNet_dataset/val_ir.txt
+
+#train: /data1/FLIR/align/yolo_dataset/train_ir.txt  # 128 images
+#val: /data1/FLIR/align/yolo_dataset/val_ir.txt
+
+# number of classes
+nc: 6
+
+# class names
+names: ['People', 'Car', 'Bus', 'Motorcycle', 'Lamp', 'Truck']
